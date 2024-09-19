@@ -33,6 +33,16 @@ def write_last_sent_tweet(content):
     with open(last_sent_file, 'w', encoding='utf-8') as file:
         file.write(content)
 
+# remove specific word from sentence # updated by Roham in 2024-09-19
+def remove_word(sentence, word_to_remove):
+    # Replace the small sentence (phrase) with an empty string
+    updated_sentence = sentence.replace(word_to_remove, '')
+    
+    # Remove extra spaces that might result from the removal
+    return ' '.join(updated_sentence.split())
+    return updated_sentence
+
+
 while True:
     try:
         # Open the X.com (formerly Twitter) profile page of 20fourMedia
@@ -53,6 +63,23 @@ while True:
         if tweet_content == last_sent_tweet:
             print("Tweet already sent. Waiting for the next check...")
         else:
+            # updated by Roham in 2024-09-19
+            sentence  = tweet_content
+            word_to_remove = ['عاجل |','عاجل|']
+
+            if (word_to_remove[0]) in sentence:
+                new_tweet_content = remove_word(sentence, word_to_remove[0])
+    
+            elif (word_to_remove[1]) in sentence:
+                new_tweet_content = remove_word(sentence, word_to_remove[1])
+    
+            else:
+                new_tweet_content = sentence
+            new_tweet_content = new_tweet_content.replace('_',' ').replace('#','')
+            tweet_content = new_tweet_content
+            print(tweet_content)
+            # end of updates
+            
             # Open the WhatsApp channel
             whatsapp_channel_url = 'https://web.whatsapp.com/accept?channel_invite_code=XXXXXX'
             driver.get(whatsapp_channel_url)
