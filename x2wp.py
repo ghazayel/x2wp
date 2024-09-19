@@ -36,7 +36,7 @@ def write_last_sent_tweet(content):
 while True:
     try:
         # Open the X.com (formerly Twitter) profile page of 20fourMedia
-        driver.get('https://x.com/20fourMedia')
+        driver.get('https://x.com/ghazayel')
 
         # Wait for the page to load completely (adjust sleep time as needed)
         time.sleep(7)
@@ -54,7 +54,7 @@ while True:
             print("Tweet already sent. Waiting for the next check...")
         else:
             # Open the WhatsApp channel
-            whatsapp_channel_url = 'https://web.whatsapp.com/accept?channel_invite_code=0029VaiyasNEquiQSnkYkh1Y'
+            whatsapp_channel_url = 'https://web.whatsapp.com/accept?channel_invite_code=XXXXXX'
             driver.get(whatsapp_channel_url)
 
             # Wait for the WhatsApp Web channel to load
