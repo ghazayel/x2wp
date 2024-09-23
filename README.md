@@ -1,5 +1,3 @@
-Here's a README.md for your GitHub repository:
-
 ```markdown
 # Twitter to WhatsApp Automation
 
