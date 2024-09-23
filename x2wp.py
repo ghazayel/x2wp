@@ -2,7 +2,11 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+
 import time
 import os
 
@@ -37,7 +41,7 @@ def write_last_sent_tweet(content):
 def remove_word(sentence, word_to_remove):
     # Replace the small sentence (phrase) with an empty string
     updated_sentence = sentence.replace(word_to_remove, '')
-    
+
     # Remove extra spaces that might result from the removal
     return ' '.join(updated_sentence.split())
     return updated_sentence
@@ -69,19 +73,25 @@ while True:
 
             if (word_to_remove[0]) in sentence:
                 new_tweet_content = remove_word(sentence, word_to_remove[0])
-    
+
             elif (word_to_remove[1]) in sentence:
                 new_tweet_content = remove_word(sentence, word_to_remove[1])
-    
+
             else:
                 new_tweet_content = sentence
             new_tweet_content = new_tweet_content.replace('_',' ').replace('#','')
-            tweet_content = new_tweet_content
-            print(tweet_content)
-            # end of updates
-            
+            #tweet_content = new_tweet_content
+            print(new_tweet_content)
+            # end of updatesa
+
             # Open the WhatsApp channel
-            whatsapp_channel_url = 'https://web.whatsapp.com/accept?channel_invite_code=XXXXXX'
+            whatsapp_channel_url = ' https://web.whatsapp.com/accept?channel_invite_code=XXXdummyaccount'
+            driver.get(whatsapp_channel_url)
+            # dummy account is used to divert pressing "x" of close before publishing content
+            
+            # Wait for the WhatsApp Web channel to load
+            time.sleep(10)
+            whatsapp_channel_url = 'https://web.whatsapp.com/accept?channel_invite_code=XXXXXintendedchannel'
             driver.get(whatsapp_channel_url)
 
             # Wait for the WhatsApp Web channel to load
@@ -89,7 +99,7 @@ while True:
 
             # Find the message input box and send the tweet content
             input_box = driver.find_element(By.XPATH, '//div[@aria-placeholder="Type an update" and @role="textbox"]')
-            input_box.send_keys(tweet_content)
+            input_box.send_keys(new_tweet_content)
 
             # Simulate pressing Enter to send the message
             input_box.send_keys(Keys.RETURN)
@@ -98,9 +108,11 @@ while True:
             write_last_sent_tweet(tweet_content)
 
             print("Tweet sent successfully!")
+            print("Original tweet :", tweet_content)
+            print("Updated tweet sent :", new_tweet_content)
 
     except Exception as e:
         print(f"An error occurred: {e}")
-    
+
     # Wait for 2 minutes before running the script again
     time.sleep(120)
