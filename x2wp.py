@@ -1,3 +1,5 @@
+# working as intended, but the error is from Whatsapp Web page, not loading Channels correctly
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -60,7 +62,8 @@ def get_latest_tweet():
         driver.save_screenshot("get_latest_tweet_error.png")  # Take screenshot on failure
         return None
 
-# Function to send message via WhatsApp Web
+import time
+
 def send_via_whatsapp(message):
     driver.get("https://web.whatsapp.com/")
 
@@ -71,7 +74,7 @@ def send_via_whatsapp(message):
         )
         channels_button.click()
 
-        # Wait for the search box to appear
+        # Wait for the search box to appear and type the channel name
         search_box = WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.XPATH, "//div[@contenteditable='true'][@data-tab='3']"))
         )
@@ -79,21 +82,37 @@ def send_via_whatsapp(message):
         search_box.click()
         search_box.send_keys("soubasouba" + Keys.ENTER)
 
-        # Wait for the message input box and send the message
+        # Wait for the result containing 'soubasouba' to appear and click it
+        # Ensure that the result containing the 'soubasouba' channel is clickable
+        channel_result = WebDriverWait(driver, 15).until(
+            EC.element_to_be_clickable((By.XPATH, "//span[@title='soubasouba']//ancestor::div[@role='button']"))
+        )
+        print("Channel result found.")
+        
+        # Scroll the element into view and click
+        driver.execute_script("arguments[0].scrollIntoView(true);", channel_result)
+        channel_result.click()
+
+        # Wait for the message input box (Type an update) and send the message
         message_box = WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.XPATH, "//div[@contenteditable='true'][@data-tab='10']"))
         )
         print("Message box found.")
-        message_box.send_keys(message + Keys.RETURN)
+        
+        # Directly interact with the message box
+        message_box.send_keys(message)
+        message_box.send_keys(Keys.RETURN)
 
         print('✅ Message sent successfully!')
+
+        # Wait for 5 seconds before closing the tab/browser
+        time.sleep(5)
 
     except Exception as e:
         print(f"❌ Failed to send message: {e}")
         driver.save_screenshot("send_via_whatsapp_error.png")  # Take screenshot on failure
 
-
-
+#Function to READ TWEET
 def main():
     previous_tweet = read_last_sent_tweet()
 
