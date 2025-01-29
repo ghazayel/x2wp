@@ -1,26 +1,31 @@
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
 
 import time
 import os
 
-# Define the path to your Chrome user data directory and the profile name
-user_data_dir = '/path/to/your/chrome/user/data'
-profile_dir = 'Profile 2'
+# Chrome options to avoid detection as automation tool
+chrome_options = webdriver.ChromeOptions()
+chrome_options.add_argument(r"user-data-dir=C:\Users\ghazayel\AppData\Local\Google\Chrome\User Data")  
+chrome_options.add_argument("--profile-directory=Profile 1")  
+chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+chrome_options.add_experimental_option("useAutomationExtension", False)
 
-# Define Chrome options with the user data directory and profile directory
-chrome_options = Options()
-chrome_options.add_argument(f"user-data-dir={user_data_dir}")
-chrome_options.add_argument(f"profile-directory={profile_dir}")
+# Optional: Fix decryption issue
+chrome_options.add_argument("--password-store=basic")  
 
-# Initialize the Chrome WebDriver with the specified options
-driver = webdriver.Chrome(options=chrome_options)
+# Initialize WebDriver
+try:
+    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+except Exception as e:
+    print(f"🚨 WebDriver failed to start: {e}")
+    exit()
 
 # File to store the last sent tweet content
 last_sent_file = 'last_sent_tweet.txt'
@@ -37,82 +42,92 @@ def write_last_sent_tweet(content):
     with open(last_sent_file, 'w', encoding='utf-8') as file:
         file.write(content)
 
-# remove specific word from sentence # updated by Roham in 2024-09-19
+# Function to remove specific words or characters from a tweet
 def remove_word(sentence, word_to_remove):
-    # Replace the small sentence (phrase) with an empty string
-    updated_sentence = sentence.replace(word_to_remove, '')
+    updated_sentence = sentence.replace(word_to_remove, '')  # Replace word with empty string
+    return ' '.join(updated_sentence.split())  # Remove extra spaces
 
-    # Remove extra spaces that might result from the removal
-    return ' '.join(updated_sentence.split())
-    return updated_sentence
-
-
-while True:
+# Function to fetch the latest tweet from the X (formerly Twitter) profile
+def get_latest_tweet():
+    driver.get("https://x.com/ghazayel")
     try:
-        # Open the X.com (formerly Twitter) profile page of 20fourMedia
-        driver.get('https://x.com/ghazayel')
+        tweet = WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "article div[lang]"))
+        ).text
+        return tweet
+    except Exception as e:
+        print(f"❌ Error fetching tweet: {e}")
+        driver.save_screenshot("get_latest_tweet_error.png")  # Take screenshot on failure
+        return None
 
-        # Wait for the page to load completely (adjust sleep time as needed)
-        time.sleep(7)
+# Function to send message via WhatsApp Web
+def send_via_whatsapp(message):
+    driver.get("https://web.whatsapp.com/")
 
-        # Find the newest tweet on the page (XPath may need to be adjusted depending on the structure of the page)
-        newest_tweet = driver.find_element(By.XPATH, '//article[1]//div[@lang]')
+    try:
+        # Wait for the "Channels" tab to be clickable and click it
+        channels_button = WebDriverWait(driver, 15).until(
+            EC.element_to_be_clickable((By.XPATH, '//*[@aria-label="Channels" or @data-icon="newsletter-outline"]'))
+        )
+        channels_button.click()
 
-        # Extract the text content of the tweet
-        tweet_content = newest_tweet.text
-        print(f"Latest Tweet: {tweet_content}")
+        # Wait for the search box to appear
+        search_box = WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.XPATH, "//div[@contenteditable='true'][@data-tab='3']"))
+        )
+        print("Search box found.")
+        search_box.click()
+        search_box.send_keys("soubasouba" + Keys.ENTER)
 
-        # Check if the tweet content is the same as the last sent tweet
-        last_sent_tweet = read_last_sent_tweet()
-        if tweet_content == last_sent_tweet:
-            print("Tweet already sent. Waiting for the next check...")
-        else:
-            # updated by Roham in 2024-09-19
-            sentence  = tweet_content
-            word_to_remove = ['عاجل |','عاجل|']
+        # Wait for the message input box and send the message
+        message_box = WebDriverWait(driver, 15).until(
+            EC.presence_of_element_located((By.XPATH, "//div[@contenteditable='true'][@data-tab='10']"))
+        )
+        print("Message box found.")
+        message_box.send_keys(message + Keys.RETURN)
 
-            if (word_to_remove[0]) in sentence:
-                new_tweet_content = remove_word(sentence, word_to_remove[0])
-
-            elif (word_to_remove[1]) in sentence:
-                new_tweet_content = remove_word(sentence, word_to_remove[1])
-
-            else:
-                new_tweet_content = sentence
-            new_tweet_content = new_tweet_content.replace('_',' ').replace('#','')
-            #tweet_content = new_tweet_content
-            print(new_tweet_content)
-            # end of updatesa
-
-            # Open the WhatsApp channel
-            whatsapp_channel_url = ' https://web.whatsapp.com/accept?channel_invite_code=XXXdummyaccount'
-            driver.get(whatsapp_channel_url)
-            # dummy account is used to divert pressing "x" of close before publishing content
-            
-            # Wait for the WhatsApp Web channel to load
-            time.sleep(10)
-            whatsapp_channel_url = 'https://web.whatsapp.com/accept?channel_invite_code=XXXXXintendedchannel'
-            driver.get(whatsapp_channel_url)
-
-            # Wait for the WhatsApp Web channel to load
-            time.sleep(15)
-
-            # Find the message input box and send the tweet content
-            input_box = driver.find_element(By.XPATH, '//div[@aria-placeholder="Type an update" and @role="textbox"]')
-            input_box.send_keys(new_tweet_content)
-
-            # Simulate pressing Enter to send the message
-            input_box.send_keys(Keys.RETURN)
-
-            # Update the last sent tweet content in the file
-            write_last_sent_tweet(tweet_content)
-
-            print("Tweet sent successfully!")
-            print("Original tweet :", tweet_content)
-            print("Updated tweet sent :", new_tweet_content)
+        print('✅ Message sent successfully!')
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"❌ Failed to send message: {e}")
+        driver.save_screenshot("send_via_whatsapp_error.png")  # Take screenshot on failure
 
-    # Wait for 2 minutes before running the script again
-    time.sleep(120)
+
+
+def main():
+    previous_tweet = read_last_sent_tweet()
+
+    # Get latest tweet
+    latest_tweet = get_latest_tweet()
+
+    if latest_tweet and latest_tweet != previous_tweet:
+        # Process tweet to remove specific words and characters
+        sentence = latest_tweet
+        word_to_remove = ['عاجل |','عاجل|']
+
+        if word_to_remove[0] in sentence:
+            new_tweet_content = remove_word(sentence, word_to_remove[0])
+        elif word_to_remove[1] in sentence:
+            new_tweet_content = remove_word(sentence, word_to_remove[1])
+        else:
+            new_tweet_content = sentence
+
+        new_tweet_content = new_tweet_content.replace('_',' ').replace('#','')  # Remove underscores and hashtags
+        
+        # Logging the tweet content
+        print(f"Original tweet: {latest_tweet}")
+        print(f"Processed tweet: {new_tweet_content}")
+
+        # Send the tweet via WhatsApp
+        send_via_whatsapp(new_tweet_content)
+
+        # Update the last sent tweet in the file
+        write_last_sent_tweet(latest_tweet)
+
+    else:
+        print("🔄 No new tweet found or tweet already sent.")
+
+    driver.quit()
+
+if __name__ == "__main__":
+    main()
